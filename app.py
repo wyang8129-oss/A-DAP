@@ -41,16 +41,6 @@ fontprop = fm.FontProperties(fname=font_path)
 plt.rc('font', family=fontprop.get_name())
 plt.rc('axes', unicode_minus=False)
 
-# ====== 테스트 그래프 ======
-fig, ax = plt.subplots()
-ax.plot([1,2,3], [3,1,2])
-ax.set_title("Streamlit Cloud 한글 그래프 정상 출력 확인")
-
-st.pyplot(fig)
-
-st.write("텍스트도 정상적으로 출력됩니다: 안녕하세요!")
-
-
 st.set_page_config(layout="wide")
 st.title("스마트팜 수확량 + 생육 예측 XAI 통합 대시보드")
 
@@ -1394,5 +1384,6 @@ if sensor_file and yield_file:
 
                 except Exception as e:
                     st.error(f"ALE 부트스트랩 오류: {e}")
+
 
 
