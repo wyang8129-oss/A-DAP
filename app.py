@@ -19,16 +19,37 @@ import matplotlib
 import platform
 
 # --- 한글 폰트 설정 ---
+import streamlit as st
+import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+import os
+
+# ====== Streamlit 웹폰트 적용 ======
 st.markdown("""
 <style>
-/* 구글 Noto Sans KR 폰트 로드 */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
-
-html, body, [class*="css"]  {
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap');
+html, body, [class*="css"] {
     font-family: 'Noto Sans KR', sans-serif;
 }
 </style>
 """, unsafe_allow_html=True)
+
+# ====== Matplotlib 폰트 적용 ======
+font_path = os.path.join("fonts", "NanumGothic.ttf")
+fontprop = fm.FontProperties(fname=font_path)
+
+plt.rc('font', family=fontprop.get_name())
+plt.rc('axes', unicode_minus=False)
+
+# ====== 테스트 그래프 ======
+fig, ax = plt.subplots()
+ax.plot([1,2,3], [3,1,2])
+ax.set_title("Streamlit Cloud 한글 그래프 정상 출력 확인")
+
+st.pyplot(fig)
+
+st.write("텍스트도 정상적으로 출력됩니다: 안녕하세요!")
+
 
 st.set_page_config(layout="wide")
 st.title("스마트팜 수확량 + 생육 예측 XAI 통합 대시보드")
@@ -1373,4 +1394,5 @@ if sensor_file and yield_file:
 
                 except Exception as e:
                     st.error(f"ALE 부트스트랩 오류: {e}")
+
 
