@@ -31,7 +31,7 @@ html, body, [class*="css"] {
 """, unsafe_allow_html=True)
 
 # ====== Matplotlib 폰트 적용 ======
-font_path = os.path.join("fonts", "NanumGothic.ttf")
+font_path = os.path.join("./fonts", "NanumGothic.ttf")
 fontprop = fm.FontProperties(fname=font_path)
 
 plt.rc('font', family=fontprop.get_name())
@@ -1377,4 +1377,5 @@ if sensor_file and yield_file:
 
                 except Exception as e:
                     st.error(f"ALE 부트스트랩 오류: {e}")
+
 
