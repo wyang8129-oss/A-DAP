@@ -90,7 +90,7 @@ if sensor_file and yield_file:
     with col7:
         harvest_count_col = st.selectbox("수확수", yield_df.columns)
     with col8:
-        harvest_weight_col = st.selectbox("착과수수", yield_df.columns)
+        harvest_weight_col = st.selectbox("착과수", yield_df.columns)
 
     st.markdown("---")
 
@@ -1371,6 +1371,7 @@ if sensor_file and yield_file:
 
                 except Exception as e:
                     st.error(f"ALE 부트스트랩 오류: {e}")
+
 
 
 
