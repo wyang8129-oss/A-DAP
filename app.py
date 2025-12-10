@@ -417,8 +417,8 @@ if sensor_file and yield_file:
     model_options = ["RandomForest", "GradientBoosting", "XGBoost", "LGBM", "GaussianNB"]
     model_choice = st.selectbox("모델 선택", model_options)
 
-    target_col = st.selectbox("예측 대상 컬럼 선택", ["수확수", "평균과중"] + growth_features)
-    features = [col for col in df.columns if col not in ["조사일자", "수확수", "평균과중"] + growth_features]
+    target_col = st.selectbox("예측 대상 컬럼 선택", ["수확수", "착과수"] + growth_features)
+    features = [col for col in df.columns if col not in ["조사일자", "수확수", "착과수수"] + growth_features]
 
     X = df[features]
     y = df[target_col]
@@ -1371,4 +1371,5 @@ if sensor_file and yield_file:
 
                 except Exception as e:
                     st.error(f"ALE 부트스트랩 오류: {e}")
+
 
