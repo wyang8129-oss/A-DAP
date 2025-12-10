@@ -203,7 +203,7 @@ if sensor_file and yield_file:
         result_row = {
             "조사일자": date,
             "수확수": row[harvest_count_col] if harvest_count_col in row else None,
-            "착과": row[harvest_weight_col] if harvest_weight_col in row else None,
+            "착과수": row[harvest_weight_col] if harvest_weight_col in row else None,
             temp_col_name: avg_temp,
             hum_col_name: avg_hum,
             co2_col_name: avg_co2,
@@ -1371,6 +1371,7 @@ if sensor_file and yield_file:
 
                 except Exception as e:
                     st.error(f"ALE 부트스트랩 오류: {e}")
+
 
 
 
