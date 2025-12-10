@@ -90,7 +90,7 @@ if sensor_file and yield_file:
     with col7:
         harvest_count_col = st.selectbox("수확수", yield_df.columns)
     with col8:
-        harvest_weight_col = st.selectbox("평균과중", yield_df.columns)
+        harvest_weight_col = st.selectbox("착과수수", yield_df.columns)
 
     st.markdown("---")
 
@@ -203,7 +203,7 @@ if sensor_file and yield_file:
         result_row = {
             "조사일자": date,
             "수확수": row[harvest_count_col] if harvest_count_col in row else None,
-            "평균과중": row[harvest_weight_col] if harvest_weight_col in row else None,
+            "착과": row[harvest_weight_col] if harvest_weight_col in row else None,
             temp_col_name: avg_temp,
             hum_col_name: avg_hum,
             co2_col_name: avg_co2,
@@ -268,12 +268,12 @@ if sensor_file and yield_file:
     # -------------------------------------------------------------
     # 그래프로 표시할 항목 선택(수확/생육)
     # -------------------------------------------------------------
-    growth_options = ["수확수", "평균과중"] + growth_features
+    growth_options = ["수확수", "착과수"] + growth_features
 
     plot_cols = st.multiselect(
         "그래프로 표시할 항목 선택",
         growth_options,
-        default=["수확수", "평균과중"]
+        default=["수확수", "착과수"]
     )
 
     if plot_cols:
@@ -1371,5 +1371,6 @@ if sensor_file and yield_file:
 
                 except Exception as e:
                     st.error(f"ALE 부트스트랩 오류: {e}")
+
 
 
