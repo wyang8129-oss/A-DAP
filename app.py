@@ -11,7 +11,6 @@ from lightgbm import LGBMRegressor
 from sklearn.naive_bayes import GaussianNB
 import shap
 import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
 from sklearn.inspection import PartialDependenceDisplay
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -32,9 +31,12 @@ else:
 plt.rcParams['axes.unicode_minus'] = False
 
 st.set_page_config(layout="wide")
-st.title("스마트팜 수확량 + 생육 예측 XAI 통합 대시보드")
+st.title("🍅 토마토 수확+생육 분석 XAI 통합 대시보드")
 
-
+import streamlit as st
+import pandas as pd
+import numpy as np
+from datetime import timedelta
 
 # -------------------------------------------------------------
 # 작물선택
@@ -418,7 +420,7 @@ if sensor_file and yield_file:
     model_choice = st.selectbox("모델 선택", model_options)
 
     target_col = st.selectbox("예측 대상 컬럼 선택", ["수확수", "착과수"] + growth_features)
-    features = [col for col in df.columns if col not in ["조사일자", "수확수", "착과수수"] + growth_features]
+    features = [col for col in df.columns if col not in ["조사일자", "수확수", "착과수"] + growth_features]
 
     X = df[features]
     y = df[target_col]
@@ -699,51 +701,85 @@ if sensor_file and yield_file:
 
     with top_col1:
         st.markdown("### 🔍 SHAP Summary")
+
         if model_choice == "GaussianNB":
             st.info("GaussianNB 모델은 SHAP 사용이 제한적입니다.")
         else:
             try:
                 # Compute or reuse SHAP
                 try:
-                    shap_values  # if existing
+                    shap_values  # if exists
                 except NameError:
                     explainer = shap.Explainer(model, X_train)
                     shap_values = explainer(X_test)
+
                 # summary plot
                 fig_shap, ax_shap = plt.subplots(figsize=(6, 4))
                 shap.summary_plot(shap_values, X_test, show=False)
                 st.pyplot(fig_shap)
                 plt.close(fig_shap)
+
                 # Summary table: mean(|shap|)
                 shap_mean = np.abs(shap_values.values).mean(axis=0)
-                shap_df = pd.DataFrame({"Feature": features, "Mean(|SHAP|)": shap_mean}).sort_values(by="Mean(|SHAP|)",
-                                                                                                     ascending=False)
+                shap_df = (
+                    pd.DataFrame({"Feature": features, "Mean(|SHAP|)": shap_mean})
+                    .sort_values(by="Mean(|SHAP|)", ascending=False)
+                )
+
                 st.dataframe(shap_df.head(12).round(6))
-                # Text summary: top contributors
-                top_feats = shap_df.head(5)
-                text_lines = []
-                total = shap_df["Mean(|SHAP|)"].sum()
-                for i, row in top_feats.iterrows():
-                    pct = 100.0 * row["Mean(|SHAP|)"] / total if total > 0 else 0.0
-                    text_lines.append(f"{row['Feature']}: 영향도 {pct:.1f}%")
+
+                # --------------------------------------------
+                # ★ 상위 양(+) / 음(-) 기여 변수 자동 요약 추가
+                # --------------------------------------------
+                st.markdown("### SHAP 기여 방향 분석")
+
+                # 평균 SHAP을 feature-wise로 다시 계산 (sign 유지)
+                shap_mean_signed = shap_values.values.mean(axis=0)
+                shap_signed_df = pd.DataFrame({
+                    "Feature": features,
+                    "SHAP_mean": shap_mean_signed
+                }).sort_values(by="SHAP_mean", ascending=False)
+
+                # 양(+) 기여 상위 5개
+                pos_df = shap_signed_df[shap_signed_df["SHAP_mean"] > 0].head(5)
+                # 음(-) 기여 상위 5개
+                neg_df = shap_signed_df[shap_signed_df["SHAP_mean"] < 0].head(5)
+
+                if not pos_df.empty:
+                    st.markdown("#### 🔵 상위 양(+) 기여 변수:")
+                    for _, r in pos_df.iterrows():
+                        st.write(f"• {r['Feature']}: 예측 증가에 기여 +{r['SHAP_mean']:.3f}")
+
+                if not neg_df.empty:
+                    st.markdown("#### 🔴 상위 음(-) 기여 변수:")
+                    for _, r in neg_df.iterrows():
+                        st.write(f"• {r['Feature']}: 예측 감소에 기여 {r['SHAP_mean']:.3f}")
+
+                # 기존 SHAP 상위 특징 문장
                 st.markdown("**상위 특징(Mean |SHAP| 기준)**")
-                for ln in text_lines:
-                    st.write("•", ln)
+                top_feats = shap_df.head(5)
+                total = shap_df["Mean(|SHAP|)"].sum()
+                for _, row in top_feats.iterrows():
+                    pct = 100.0 * row["Mean(|SHAP|)"] / total if total > 0 else 0.0
+                    st.write(f"• {row['Feature']}: 영향도 {pct:.1f}%")
+
             except Exception as e:
                 st.error(f"SHAP 계산/시각화 오류: {e}")
+
+    # ------------------------------------------------------------------------
 
     with top_col2:
         st.markdown("### 📊 Feature Importance (Model-based)")
         try:
             if hasattr(model, "feature_importances_"):
                 importances = model.feature_importances_
-                fi_df = pd.DataFrame({"Feature": features, "Importance": importances}).sort_values(by="Importance",
-                                                                                                   ascending=False)
+                fi_df = pd.DataFrame({"Feature": features, "Importance": importances}).sort_values(
+                    by="Importance", ascending=False)
             else:
-                # fallback: permutation importance would be better; here zero-fill
                 fi_df = pd.DataFrame({"Feature": features, "Importance": np.zeros(len(features))}).sort_values(
                     by="Importance", ascending=False)
                 st.warning("선택 모델에 feature_importances_ 속성이 없습니다. Permutation importance 권장을 권장합니다.")
+
             # plot
             fig_fi, ax_fi = plt.subplots(figsize=(6, 4))
             ax_fi.barh(fi_df["Feature"], fi_df["Importance"])
@@ -751,6 +787,7 @@ if sensor_file and yield_file:
             ax_fi.set_title("Feature Importance")
             st.pyplot(fig_fi)
             plt.close(fig_fi)
+
             # text summary
             st.markdown("**Feature Importance 요약**")
             top = fi_df.head(5)
@@ -761,37 +798,41 @@ if sensor_file and yield_file:
         except Exception as e:
             st.error(f"Feature Importance 처리 오류: {e}")
 
-    # ---------- SHAP 상세: 특정 샘플 영향 (예: CO2가 +2kg 기여 같은 문장) ----------
+    # ---------------- SHAP 상세 분석 ----------------
     st.markdown("### 🔎 SHAP 샘플별 상세 해석")
     sample_idx = st.number_input("샘플 인덱스 (X_test 기준)", min_value=0, max_value=max(0, len(X_test) - 1), value=0, step=1)
+
     if model_choice != "GaussianNB":
         try:
-            # get one sample
             xi = X_test.reset_index(drop=True).iloc[sample_idx:sample_idx + 1]
-            # shap values for that sample
-            shp_s = shap_values[sample_idx].values  # shape (n_features,)
-            shp_df = pd.DataFrame({"Feature": features, "SHAP": shp_s}).sort_values(by="SHAP", key=lambda s: np.abs(s),
-                                                                                    ascending=False)
+
+            shp_s = shap_values[sample_idx].values
+            shp_df = pd.DataFrame({"Feature": features, "SHAP": shp_s}).sort_values(
+                by="SHAP", key=lambda s: np.abs(s), ascending=False)
+
             st.dataframe(shp_df.head(20).round(4))
-            # textual interpretation: top positive / negative contributors
+
+            # positive contributors
             pos = shp_df[shp_df["SHAP"] > 0].head(5)
-            neg = shp_df[shp_df["SHAP"] < 0].head(5)
             if not pos.empty:
                 st.write("상위 양(+) 기여 변수:")
                 for _, r in pos.iterrows():
                     st.write(f"• {r['Feature']}: 예측 증가에 기여 +{r['SHAP']:.3f}")
+
+            # negative contributors
+            neg = shp_df[shp_df["SHAP"] < 0].head(5)
             if not neg.empty:
                 st.write("상위 음(-) 기여 변수:")
                 for _, r in neg.iterrows():
                     st.write(f"• {r['Feature']}: 예측 감소에 기여 {r['SHAP']:.3f}")
-            # Example style sentence (자동생성)
-            if "CO2" in shp_df["Feature"].values or "CO₂" in shp_df["Feature"].values:
-                # find CO2 row if exists
-                co2_rows = shp_df[shp_df["Feature"].str.contains("CO2|CO₂", regex=True)]
-                if not co2_rows.empty:
-                    r = co2_rows.iloc[0]
-                    sign = "+" if r["SHAP"] > 0 else "-"
-                    st.info(f"예시 해석: 특정 샘플에서 CO₂ 농도는 수확량 예측에 {sign}{abs(r['SHAP']):.3f}만큼 기여했습니다.")
+
+            # Example CO2 interpretation
+            co2_rows = shp_df[shp_df["Feature"].str.contains("CO2|CO₂", regex=True)]
+            if not co2_rows.empty:
+                r = co2_rows.iloc[0]
+                sign = "+" if r["SHAP"] > 0 else "-"
+                st.info(f"예시 해석: 특정 샘플에서 CO₂ 농도는 수확량 예측에 {sign}{abs(r['SHAP']):.3f} 만큼 기여했습니다.")
+
         except Exception as e:
             st.error(f"SHAP 샘플 분석 오류: {e}")
     else:
@@ -867,8 +908,8 @@ if sensor_file and yield_file:
             st.write(f"최적(예측이 큰) 구간: {start:.3f} ~ {end:.3f}")
             st.write(f"구간 평균 예측값: {pdp_summary['mean_val']:.3f}, 구간 최대값: {pdp_summary['max_val']:.3f}")
             # agricultural interpretation template
-            st.markdown("**농업적 해석(예시)**")
-            st.write(f"• 만약 {ice_feature}가 {start:.1f}–{end:.1f} 구간에 자주 머문다면 모델은 이 구간을 비교적 우호적으로 평가합니다.")
+            st.markdown("**농업적 해석**")
+            st.write(f"• 만약 {ice_feature}가 {start:.1f}–{end:.1f} 구간에 자주 머문다면 모델은 이 구간을 비교적 우호적으로 평가")
         except Exception as e:
             st.error(f"PDP 처리 오류: {e}")
 
@@ -902,7 +943,7 @@ if sensor_file and yield_file:
                 for idx, val, deriv in ale_summary["steep_points"][:5]:
                     st.write(f"• idx {idx}, {ice_feature}≈{val:.2f}, 기울기≈{deriv:.3f}")
             # example agricultural interpretation template
-            st.markdown("**농업적(생리학적) 해석 예시 템플릿**")
+            st.markdown("**농업적(생리학적) 해석**")
             st.write("• 모델이 특정 온도구간을 우호적으로 평가한다면(예: 20~21℃), 해당 구간에서 광합성·개화·착과가 유리할 가능성이 있습니다.")
             st.write("• 반대로 특정 구간에서 ALE가 급격히 감소하면(임계온도 존재), 그 지점을 알람으로 설정하여 관리/환기/차광 등의 제어전략을 고려하세요.")
         except Exception as e:
@@ -1371,8 +1412,4 @@ if sensor_file and yield_file:
 
                 except Exception as e:
                     st.error(f"ALE 부트스트랩 오류: {e}")
-
-
-
-
 
