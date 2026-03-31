@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from sklearn.inspection import PartialDependenceDisplay
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import matplotlib.font_manager as fm   # 🔥 이 줄 반드시 추가
 
 import matplotlib
 import platform
