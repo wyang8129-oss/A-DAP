@@ -105,7 +105,7 @@ if sensor_file and yield_file:
     if crop_name == "토마토":
         growth_features = ["초장", "생장길이", "엽수", "엽장", "엽폭", "줄기굵기", "화방높이"]
     else:   # 오이
-        growth_features = ["초장", "엽수", "엽장", "엽폭", "줄기굵기", "화방높이"]
+        growth_features = ["초장", "엽수", "엽장", "엽폭", "줄기굵기", "화방높이","생장길이"]
 
     growth_cols = {}
 
