@@ -139,7 +139,7 @@ if sensor_file and yield_file:
 
     # --- 주 선택 슬라이더 동기화 ---
     if "weeks" not in st.session_state:
-        st.session_state.weeks = 7  # 초기값
+        st.session_state.weeks = 8  # 초기값
 
 
     def update_weeks_1():
