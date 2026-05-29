@@ -22,14 +22,33 @@ import matplotlib
 import platform
 import os
 
-# === Matplotlib 폰트 적용 ===
-FONT_PATH = "./fonts/NanumGothic.ttf"
+import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+import os
+import streamlit as st
 
-if os.path.exists(FONT_PATH):
-    fm.fontManager.addfont(FONT_PATH)
-    plt.rc('font', family='NanumGothic')
-else:
-    st.warning("⚠ NanumGothic.ttf 파일을 찾을 수 없어 기본 폰트를 사용합니다.")
+FONT_PATH = "fonts/NanumGothic.ttf"
+
+try:
+    if os.path.exists(FONT_PATH):
+        fm.fontManager.addfont(FONT_PATH)
+
+        font_prop = fm.FontProperties(fname=FONT_PATH)
+        plt.rcParams["font.family"] = font_prop.get_name()
+
+        st.sidebar.success("NanumGothic 적용")
+
+    else:
+        st.sidebar.warning(
+            f"NanumGothic.ttf 없음 ({FONT_PATH}) → 기본 폰트 사용"
+        )
+
+except Exception as e:
+    st.sidebar.warning(
+        f"폰트 로드 실패 → 기본 폰트 사용 ({e})"
+    )
+
+plt.rcParams["axes.unicode_minus"] = False
 
 plt.rcParams['axes.unicode_minus'] = False
 
