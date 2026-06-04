@@ -1451,7 +1451,7 @@ def compute_rolling_summary(sensor_df, yield_df, date_col_sensor, date_col_yield
     hum_night_col_name = build_window_feature_name(week, "평균야간습도(19~07시)")
     co2_day_col_name = build_window_feature_name(week, "평균주간CO₂(08~18시)")
     co2_night_col_name = build_window_feature_name(week, "평균야간CO₂(19~07시)")
-    solar_col_name = build_window_feature_name(week, "평균누적일사량(0:00기준)")
+    solar_col_name = build_window_feature_name(week, "평균누적일사량(1일최대값기준)")
 
     results = []
     sensor_dates = pd.to_datetime(sensor_df[date_col_sensor], errors="coerce")
@@ -1471,11 +1471,15 @@ def compute_rolling_summary(sensor_df, yield_df, date_col_sensor, date_col_yield
         avg_hum_night = np.nan
 
         if not subset.empty:
-            midnight_values = subset[subset["time"].astype(str) == "00:00:00"]
-            if not midnight_values.empty:
-                midnight_daily = midnight_values.groupby("date")[solar_col].first().reset_index()
-                if not midnight_daily.empty:
-                    avg_solar = pd.to_numeric(midnight_daily[solar_col], errors="coerce").mean()
+            # 일별 누적일사량 최대값 사용 (24시간 중 최대값)
+            subset[solar_col] = pd.to_numeric(subset[solar_col], errors="coerce")
+            daily_max_solar = (
+                subset.groupby("date")[solar_col]
+                .max()
+                .reset_index()
+            )
+            if not daily_max_solar.empty:
+                avg_solar = daily_max_solar[solar_col].mean()
 
             # 주간 평균 CO₂ (08~18시)
             co2_daytime = subset[
@@ -1889,7 +1893,7 @@ if sensor_file and yield_file:
     hum_night_col_name = build_window_feature_name(selected_week, "평균야간습도(19~07시)")
     co2_day_col_name = build_window_feature_name(selected_week, "평균주간CO₂(08~18시)")
     co2_night_col_name = build_window_feature_name(selected_week, "평균야간CO₂(19~07시)")
-    solar_col_name = build_window_feature_name(selected_week, "평균누적일사량(0:00기준)")
+    solar_col_name = build_window_feature_name(selected_week, "평균누적일사량(1일최대값기준)")
 
     env_mapping = {
         temp_day_col_name: temp_day_col_name,
